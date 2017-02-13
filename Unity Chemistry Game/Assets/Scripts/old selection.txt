@@ -1,0 +1,172 @@
+OLD:
+
+public void updateScript()
+    {
+        if (!pause.gamePaused)
+        {
+            move();
+            rotate();
+
+            if (useMouse)
+            {
+                mouse.updateScript();
+            }
+            else if (useLeap)
+            {
+                pinch.updateScript();
+            }
+            else
+            {
+                Debug.Log("NO OBJECT SELECTION DEVICE ENABLED.");
+            }
+
+            mousePos = Input.mousePosition;
+            bool doEPick = true;
+
+            xRect.position = new Vector3(mousePos.x, mousePos.y, 0.0f);
+            xfRect.position = new Vector3(pinch.pinchLocation2D.x, pinch.pinchLocation2D.y, 0.0f);
+
+            if (!pinch.currentlyPinching && !Input.GetMouseButton(0))
+            {
+                if (spotted != null)
+                {
+                    spotted.GetComponent<BallMotion>().isSpotted = false;
+                }
+                spotted = null;
+            }
+
+            if (!hasSpottedObj())
+            {
+                Ray ray = cam.ScreenPointToRay(mousePos);
+                Ray rayPinch = cam.ScreenPointToRay(pinch.pinchLocation2D);
+
+                if (Physics.Raycast(ray, out hit, Mathf.Infinity))
+                {
+                    spotted = hit.collider.gameObject;
+
+                    foreach (GameObject ball in circleSpherePairs.Values)
+                    {
+                        if (ball == spotted)
+                        {
+                            spotted.GetComponent<MeshRenderer>().material.color = Color.yellow;
+                            spotted.GetComponent<BallMotion>().spot(true);
+                        }
+                        else
+                        {
+                            if (ball.GetComponent<ProtonScript>())
+                            {
+                                ball.GetComponent<MeshRenderer>().material.color = ball.GetComponent<ProtonScript>().ballColor;
+                            }
+                            if (ball.GetComponent<ElectronScript>())
+                            {
+                                ball.GetComponent<MeshRenderer>().material.color = ball.GetComponent<ElectronScript>().ballColor;
+                            }
+                            ball.GetComponent<BallMotion>().spot(false);
+                        }
+                    }
+                    doEPick = false;
+                }
+                else if (Physics.Raycast(rayPinch, out hit, Mathf.Infinity) && pinch.currentlyPinching)
+                {
+                    spotted = hit.collider.gameObject;
+
+                    foreach (GameObject ball in circleSpherePairs.Values)
+                    {
+                        if (ball == spotted)
+                        {
+                            spotted.GetComponent<MeshRenderer>().material.color = Color.green;
+                            spotted.GetComponent<BallMotion>().spot(true);
+                        }
+                        else
+                        {
+                            if (ball.GetComponent<ProtonScript>())
+                            {
+                                ball.GetComponent<MeshRenderer>().material.color = ball.GetComponent<ProtonScript>().ballColor;
+                            }
+                            if (ball.GetComponent<ElectronScript>())
+                            {
+                                ball.GetComponent<MeshRenderer>().material.color = ball.GetComponent<ElectronScript>().ballColor;
+                            }
+                            ball.GetComponent<BallMotion>().spot(false);
+                        }
+                    }
+                    doEPick = false;
+                }
+                else
+                {
+                    foreach (GameObject ball in circleSpherePairs.Values)
+                    {
+                        if (ball.GetComponent<ProtonScript>())
+                        {
+                            ball.GetComponent<MeshRenderer>().material.color = ball.GetComponent<ProtonScript>().ballColor;
+                        }
+                        if (ball.GetComponent<ElectronScript>())
+                        {
+                            ball.GetComponent<MeshRenderer>().material.color = ball.GetComponent<ElectronScript>().ballColor;
+                        }
+                        ball.GetComponent<BallMotion>().spot(false);
+                    }
+                }
+
+                /////////////////////////
+
+                if (doEPick)
+                {
+                    float closestDist = -1;
+                    GameObject found = null;
+                    foreach (GameObject c in circleSpherePairs.Keys)
+                    {
+                        r = circleRadiusPairs[c];
+
+                        rectrans = c.GetComponent<Image>().rectTransform;
+                        rectrans.localScale = new Vector3(r / 50.0f, r / 50.0f, 1.0f);
+                        rectrans.position = new Vector3(getScreenPosition(circleSpherePairs[c]).x, getScreenPosition(circleSpherePairs[c]).y, 0.0f);
+
+                        GameObject ball = circleSpherePairs[c];
+
+                        if (magnitudeBetweenPoints(Input.mousePosition, c.transform.position) <= r)
+                        {
+                            if (found == null || magnitudeBetweenPoints(Input.mousePosition, c.transform.position) < closestDist)
+                            {
+                                found = ball;
+                                closestDist = magnitudeBetweenPoints(Input.mousePosition, c.transform.position);
+                            }
+
+                        }
+                        else if (magnitudeBetweenPoints(pinch.pinchLocation2D, c.transform.position) <= r && pinch.currentlyPinching)
+                        {
+                            spotted = ball;
+                            spotted.GetComponent<MeshRenderer>().material.color = Color.cyan;
+                            spotted.GetComponent<BallMotion>().spot(true);
+                        }
+                        else
+                        {
+                            spotted = null;
+                            if (ball.GetComponent<ProtonScript>())
+                            {
+                                ball.GetComponent<MeshRenderer>().material.color = ball.GetComponent<ProtonScript>().ballColor;
+                            }
+                            if (ball.GetComponent<ElectronScript>())
+                            {
+                                ball.GetComponent<MeshRenderer>().material.color = ball.GetComponent<ElectronScript>().ballColor;
+                            }
+                            ball.GetComponent<BallMotion>().spot(false);
+                        }
+
+                    }
+                    if (found != null)
+                    {
+                        spotted = found;
+                        spotted.GetComponent<MeshRenderer>().material.color = Color.red;
+                        spotted.GetComponent<BallMotion>().spot(true);
+                    }
+                }
+            }
+
+            foreach (GameObject c in circleSpherePairs.Keys)
+            {
+                circleSpherePairs[c].GetComponent<BallMotion>().updateBall();
+            }
+            updateCircles();
+        }
+    }
